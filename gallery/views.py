@@ -11,3 +11,6 @@ def home(request):
         'assets': fake_database,
         }
         return render(request, 'gallery/index.html', context_data)
+   
+def about(request):
+    return render(request, 'gallery/about.html')
