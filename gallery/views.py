@@ -1,16 +1,13 @@
 from django.shortcuts import render
-
+from .models import Asset
 def home(request):
-        fake_database =[
-            {'id': 1, 'name': 'Sci-Fi Helmet', 'file_size': '15 MB'},
-            {'id': 2, 'name': 'Old Chair', 'file_size': '2 MB'},
-            {'id': 3, 'name': 'Cyber Truck', 'file_size': '10 MB'},
-        ]
-        context_data = {
+    # ORM Запрос: "Дай мне все объекты Asset из базы"
+    assets = Asset.objects.all()
+    context_data = {
         'page_title': 'Главная Галерея',
-        'assets': fake_database,
-        }
-        return render(request, 'gallery/index.html', context_data)
-   
+        'assets': assets, # Передаем реальный QuerySet (список)
+    }
+    return render(request, 'gallery/index.html', context_data)
+
 def about(request):
     return render(request, 'gallery/about.html')

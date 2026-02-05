@@ -12,22 +12,21 @@
 
 </header>
 <main>
-<h2>Доступные ассеты:</h2>
-<!-- Цикл for в шаблоне Django -->
-<ul>
-{% for asset in assets %}
-<li>
-<strong>{{ asset.name }}</strong>
-<small>(Размер: {{ asset.file_size }})</small>
-<!-- Ссылка-заглушка -->
-<a href="#">[Скачать]</a>
-</li>
-{% empty %}
-<!-- Этот блок сработает, если список assets пустой -->
-<li>Нет доступных моделей.</li>
-{% endfor %}
-</ul>
+  <h2>Доступные ассеты:</h2>
+
+  <ul>
+    {% for asset in assets %}
+      <li>
+        <strong>{{ asset.title }}</strong>
+        <small>(Размер: {{ asset.file.size|filesizeformat }})</small>
+        <a href="{{ asset.file.url }}" download>[Скачать файл]</a>
+      </li>
+    {% empty %}
+      <li>Нет доступных моделей.</li>
+    {% endfor %}
+  </ul>
 </main>
+
 <footer>
 <a href="/about/">О нас</a>
 <p>&copy; 2024 Web Structures Course</p>
