@@ -2,7 +2,7 @@ from django.shortcuts import render
 from .models import Asset
 def home(request):
     # ORM Запрос: "Дай мне все объекты Asset из базы"
-    assets = Asset.objects.all()
+    assets = Asset.objects.all().order_by('-created_at')
     context_data = {
         'page_title': 'Главная Галерея',
         'assets': assets, # Передаем реальный QuerySet (список)
@@ -11,3 +11,5 @@ def home(request):
 
 def about(request):
     return render(request, 'gallery/about.html')
+def upload(request):
+    return render(request, 'gallery/upload.html')
