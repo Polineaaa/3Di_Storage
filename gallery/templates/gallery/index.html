@@ -78,21 +78,18 @@
 </main>
 <!-- type="module" включает режим современных импортов -->
 <script type="module">
-  console.log("module script started");
-
-// Импортируем нашу функцию.
-// Обратите внимание: путь к JS через static
-import { mountSimpleCube } from "{% static 'gallery/js/viewer.js' %}";
-// Находим все контейнеры карточек
+import { loadModel } from "{% static 'gallery/js/viewer.js' %}";
+// Находим все карточки с моделями
 const containers = document.querySelectorAll('.card-preview');
-if (containers.length > 0) {
-// Берем только первый контейнер для теста
-const firstContainer = containers[0];
-// Получаем его ID (мы задали его на прошлой неделе: model-container-{{ asset.id }})
-const containerId = firstContainer.id;
-// Запускаем магию
-mountSimpleCube(containerId);
+// Пробегаемся по каждой
+containers.forEach(container => {
+const id = container.id; // Например: "model-container-5"
+const url = container.dataset.url; // Например: "/media/3d_assets/chair.glb"
+// Если URL есть (файл существует) - запускаем viewer
+if (url) {
+loadModel(id, url);
 }
+});
 </script>
 </body>
 </html>
