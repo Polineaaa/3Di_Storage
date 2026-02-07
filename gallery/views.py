@@ -1,5 +1,7 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from .models import Asset
+from .forms import AssetForm
+
 def home(request):
     # ORM Запрос: "Дай мне все объекты Asset из базы"
     assets = Asset.objects.all().order_by('-created_at')
@@ -12,4 +14,12 @@ def home(request):
 def about(request):
     return render(request, 'gallery/about.html')
 def upload(request):
-    return render(request, 'gallery/upload.html')
+    if request.method == 'POST':
+        form = AssetForm(request.POST, request.FILES)
+
+        if form.is_valid():
+            form.save()
+            return redirect('home')
+    else:
+        form = AssetForm()
+    return render(request, 'gallery/upload.html', {'form': form})
