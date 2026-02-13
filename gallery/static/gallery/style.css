@@ -34,12 +34,16 @@ transform: translateY(-5px); /* При наведении карточка чу�
 }
 /* Место для будущего 3D-вьювера или скриншота */
 .card-preview {
+position: relative;   
 height: 200px;
-background-color: #e0e0e0;
+
+background: radial-gradient(circle, #ffffff, #a7d0e3);
+
+
 display: flex;
 align-items: center;
 justify-content: center;
-color: #888;
+
 font-size: 3rem;
 }
 .card-info {
@@ -54,6 +58,39 @@ color: #333;
 font-size: 0.9rem;
 color: #777;
 margin-bottom: 15px;
+}
+/* Сам экран загрузки (поверх 3D) */
+.loader-overlay {
+position: absolute;
+top: 0; left: 0; right: 0; bottom: 0;
+background: rgba(255, 255, 255, 0.9); /* Полупрозрачный белый */
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+z-index: 10;
+transition: opacity 0.3s; /* Плавное исчезновение */
+}
+/* Полоска прогресса (фон) */
+.progress-bar {
+width: 60%;
+height: 6px;
+background: #e0e0e0;
+border-radius: 3px;
+overflow: hidden;
+margin-top: 10px;
+}
+/* Полоска прогресса (заполнение) */
+.progress-fill {
+width: 0%; /* Будем менять это через JS */
+height: 100%;
+background-color: #007bff; /* Синий цвет */
+transition: width 0.1s;
+}
+.error-msg {
+color: #dc3545;
+text-align: center;
+padding: 20px;
 }
 /* Кнопка */
 .btn {

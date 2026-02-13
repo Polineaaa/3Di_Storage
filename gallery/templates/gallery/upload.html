@@ -24,7 +24,34 @@ button { padding: 10px 20px; cursor: pointer; }
 <div class="form-group">
 {{ form.as_p }}
 </div>
-<button type="submit">Загрузить в базу</button>
+<!-- БЛОК ПРЕВЬЮ (Новый) -->
+<div style="margin-bottom: 20px;">
+<p>Авто-генерация превью:</p>
+<!-- Сюда JS вставит Canvas с 3D моделью -->
+<div id="preview-container" style="width: 300px; height: 200px; background: #eee; 
+border: 1px solid #ccc;">
+<span style="display: block; padding: 80px 0; text-align: center; color: 
+#999;">Выберите файл...</span>
+</div>
+<!-- СКРЫТОЕ ПОЛЕ (Сюда JS запишет длинную строку base64) -->
+<input type="hidden" name="image_data" id="id_image_data">
+</div>
+<!-- ... -->
+<!-- Кнопка отправки (блокируем её, пока не сгенерируется картинка) -->
+<button type="submit" id="submit-btn" disabled>Загрузить в базу</button>
+<!-- Подключаем скрипт-генератор (создадим его на следующем шаге) -->
+<!-- Важно: type="module", чтобы работали импорты Three.js -->
+{% load static %}
+<script type="importmap">
+{
+"imports": {
+"three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+"three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+}
+}
+</script>
+<script type="module" src="{% static 'gallery/js/autothumb.js' %}"></script>
+
 </form>
 <br>
 <a href="{% url 'home' %}">← Назад в галерею</a>
