@@ -36,15 +36,37 @@ transform: translateY(-5px); /* При наведении карточка чу�
 .card-preview {
 position: relative;   
 height: 200px;
-
-background: radial-gradient(circle, #ffffff, #a7d0e3);
-
+position: relative;
+cursor: pointer;
+background-size: cover;
+background-position: center;
 
 display: flex;
 align-items: center;
 justify-content: center;
 
 font-size: 3rem;
+}
+
+/* Затемнение картинки при наведении */
+.card-preview:hover::after {
+content: '';
+position: absolute;
+top: 0; left: 0; right: 0; bottom: 0;
+background: rgba(65, 107, 140, 0.1);
+}
+.card-preview::after {
+  pointer-events: none;
+}
+.play-btn {
+  pointer-events: none;
+}
+
+/* Эффект нажатия */
+.card-preview:hover .play-btn {
+background: rgba(127, 171, 218, 0.8); /* Синий при наведении */
+transform: translate(-10%, -10%) scale(0,1.0,1);
+border-radius: 20%; 
 }
 .card-info {
 padding: 20px;

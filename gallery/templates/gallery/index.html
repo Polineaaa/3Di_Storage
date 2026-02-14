@@ -38,13 +38,21 @@
         <div class="asset-card">
 
             <!-- Превью (заглушка под 3D) -->
-            <div class="card-preview"
+            <div class="card-preview js-load-3d"
                  id="model-container-{{ asset.id }}"
                  {% if asset.file %}
                  data-url="{{ asset.file.url }}"
                  {% endif %}
+
+                 {% if asset.image %}
+                    style="background-image: url('{{ asset.image.url}}');"
+                 {% endif %}
             >
-                🎲
+            {% if asset.image %}
+                <div class ="play-btn">▶️</div>
+            {% else %}
+                <span style="font-size: 2rem;">🎲</span>
+            {% endif %}
             </div>
 
             <!-- Информация -->
@@ -78,18 +86,35 @@
 </main>
 <!-- type="module" включает режим современных импортов -->
 <script type="module">
-import { loadModel } from "{% static 'gallery/js/viewer.js' %}";
-// Находим все карточки с моделями
-const containers = document.querySelectorAll('.card-preview');
-// Пробегаемся по каждой
-containers.forEach(container => {
-const id = container.id; // Например: "model-container-5"
-const url = container.dataset.url; // Например: "/media/3d_assets/chair.glb"
-// Если URL есть (файл существует) - запускаем viewer
-if (url) {
-loadModel(id, url);
-}
-});
+    import { loadModel } from "{% static 'gallery/js/viewer.js' %}";
+    // Находим все блоки, готовые к 3D
+    const containers = document.querySelectorAll('.js-load-3d');
+    containers.forEach(container => {
+        // Вешаем слушатель клика на каждую карточку
+        container.addEventListener('click', function() {
+            
+            // Проверка: Если внутри уже есть canvas, значит модель уже загружена
+            if (this.querySelector('canvas')) return;
+            // 1. Убираем кнопку Play (очищаем контент)
+            // Но оставляем фон, пока не появится Canvas, чтобы не мигало белым
+            this.innerHTML = ''; 
+            this.style.backgroundImage = 'none';
+            // 2. Добавляем спиннер (визуально для пользователя)
+         
+            // 3. Запускаем загрузку 3D
+            const id = this.id;
+            const url = this.dataset.url;
+            
+            if (url) {
+                console.log("Загружаю 3D по требованию:", url);
+                loadModel(id, url);
+                
+                // Убираем фоновую картинку, когда 3D загрузится? 
+                // loadModel сам очистит innerHTML и перекроет фон канвасом.
+            }
+        });
+    });
 </script>
+
 </body>
 </html>
