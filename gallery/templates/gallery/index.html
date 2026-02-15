@@ -2,119 +2,199 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<title>3D Storage</title>
-<!-- ... ваши старые теги ... -->
-<!-- ВАЖНО: Это карта, указывающая браузеру, где брать библиотеки -->
-<script type="importmap">
-{
-"imports": {
-"three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-"three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-}
-}
-</script>
-<!-- Подключение CSS (оставьте как было) -->
-<link rel="stylesheet" href="{% static 'gallery/style.css' %}">
+  <meta charset="UTF-8">
+  <title>3D Storage</title>
 
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <link rel="stylesheet" href="{% static 'gallery/style.css' %}">
 </head>
+
 <body>
 
-<header>
-    <h1>{{ page_title }}</h1>
+<header class="page-header">
+  <div class="header-left">
+    <h1 class="page-title">{{ page_title }}</h1>
+  
+  </div>
 
-    <!-- Кнопка перехода на загрузку -->
-    <a href="{% url 'upload' %}" class="btn" style="background-color: #28a745;">
-        + Загрузить модель
-    </a>
+  <a href="{% url 'upload' %}" class="btn btn-success">
+    + Загрузить модель
+  </a>
 </header>
 
-<main>
-    <!-- Сетка галереи -->
-    <div class="gallery-grid">
+<section class="toolbar">
+  <form action="{% url 'home' %}" method="get" class="toolbar-form">
+   <!-- Поиск -->
+    <div class="toolbar-group grow">
+      <input
+        type="text"
+        name="q"
+        class="search-input"
+        placeholder="Найти 3D модель..."
+        value="{{ request.GET.q|default:'' }}"
+      >
+    </div>
 
-        {% for asset in assets %}
-        <!-- Карточка -->
-        <div class="asset-card">
+    <!-- Сортировка -->
+    <div class="toolbar-group">
+      <select name="ordering" class="sort-select" onchange="this.form.submit()">
+        <option value="new" {% if request.GET.ordering == 'new' %}selected{% endif %}>Сначала новые</option>
+        <option value="old" {% if request.GET.ordering == 'old' %}selected{% endif %}>Сначала старые</option>
+        <option value="name" {% if request.GET.ordering == 'name' %}selected{% endif %}>По имени (А-Я)</option>
+      </select>
+    </div>
 
-            <!-- Превью (заглушка под 3D) -->
-            <div class="card-preview js-load-3d"
-                 id="model-container-{{ asset.id }}"
-                 {% if asset.file %}
-                 data-url="{{ asset.file.url }}"
-                 {% endif %}
+    <!-- Чтобы при поиске/сортировке не терялся days -->
+    <input type="hidden" name="days" value="{{ request.GET.days|default:'' }}">
 
-                 {% if asset.image %}
-                    style="background-image: url('{{ asset.image.url}}');"
-                 {% endif %}
-            >
-            {% if asset.image %}
-                <div class ="play-btn">▶️</div>
-            {% else %}
-                <span style="font-size: 2rem;">🎲</span>
-            {% endif %}
-            </div>
+    <!-- Кнопка поиска -->
+    <div class="toolbar-group">
+      <button type="submit" class="btn btn-primary">Найти</button>
+    </div>
 
-            <!-- Информация -->
-            <div class="card-info">
-                <h3 class="card-title">{{ asset.title }}</h3>
+    <!-- Быстрые фильтры -->
+    <div class="toolbar-group toolbar-chips">
+      <a
+        href="?q={{ request.GET.q|default:'' }}&ordering={{ request.GET.ordering|default:'' }}"
+        class="chip {% if not request.GET.days %}chip-active{% endif %}"
+        title="Показать всё"
+      >Все</a>
 
-                <div class="card-meta">
-                    <span>📅 {{ asset.created_at|date:"d M Y" }}</span>
+      <a
+        href="?q={{ request.GET.q|default:'' }}&ordering={{ request.GET.ordering|default:'' }}&days=1"
+        class="chip {% if request.GET.days == '1' %}chip-active{% endif %}"
+      >Сегодня</a>
 
-                    {% if asset.file %}
-                    <span style="float: right;">
-                        💾 {{ asset.file.size|filesizeformat }}
-                    </span>
-                    {% endif %}
-                </div>
+      <a
+        href="?q={{ request.GET.q|default:'' }}&ordering={{ request.GET.ordering|default:'' }}&days=7"
+        class="chip {% if request.GET.days == '7' %}chip-active{% endif %}"
+      >7 дней</a>
 
-                {% if asset.file %}
-                    <a href="{{ asset.file.url }}" class="btn" download>
-                        Скачать .glb
-                    </a>
-                {% else %}
-                    <span style="color: red;">Файл отсутствует</span>
-                {% endif %}
-            </div>
+      <a
+        href="?q={{ request.GET.q|default:'' }}&ordering={{ request.GET.ordering|default:'' }}&days=30"
+        class="chip {% if request.GET.days == '30' %}chip-active{% endif %}"
+      >30 дней</a>
+    </div>
+
+    <!-- Сброс -->
+    <div class="toolbar-group">
+      {% if request.GET.q or request.GET.ordering or request.GET.days %}
+        <a href="{% url 'home' %}" class="btn btn-ghost">Сбросить</a>
+      {% endif %}
+    </div>
+
+  </form>
+</section>
+
+<main class="page-main">
+  <div class="gallery-grid">
+
+    {% for asset in page_obj %}
+    <div class="asset-card">
+
+      <div class="card-preview js-load-3d"
+           id="model-container-{{ asset.id }}"
+           {% if asset.file %}data-url="{{ asset.file.url }}"{% endif %}
+           {% if asset.image %}style="background-image:url('{{ asset.image.url }}');"{% endif %}>
+
+        {% if asset.image %}
+          <div class="play-btn">▶️</div>
+        {% else %}
+          <span class="preview-fallback">🎲</span>
+        {% endif %}
+      </div>
+
+      <div class="card-info">
+        <h3 class="card-title">{{ asset.title }}</h3>
+
+        <div class="card-meta">
+          <span>📅 {{ asset.created_at|date:"d M Y" }}</span>
+          {% if asset.file %}
+            <span class="meta-right">💾 {{ asset.file.size|filesizeformat }}</span>
+          {% endif %}
         </div>
-        {% empty %}
-            <p>База пуста.</p>
-        {% endfor %}
+
+        {% if asset.file %}
+          <a href="{{ asset.file.url }}" class="btn btn-secondary" download>Скачать .glb</a>
+        {% else %}
+          <span class="file-missing">Файл отсутствует</span>
+        {% endif %}
+      </div>
 
     </div>
+    {% empty %}
+      <div class="empty-state">
+        <div class="empty-title">Пока пусто</div>
+        <div class="empty-text">Загрузи первую модель - и она появится здесь.</div>
+      </div>
+    {% endfor %}
+
+  </div>
+{% load gallery_extras %}
+<div class="gallery-grid">
+    <!-- ... -->
+</div>
+<!-- 3. Блок Пагинации -->
+<div class="pagination">
+    <span class="step-links">
+        
+        {% if page_obj.has_previous %}
+            <!-- Используем наш тег: берем текущий request и меняем page на 1 -->
+            <a href="?{% param_replace request page=1 %}">&laquo; Первая</a>
+            <a href="?{% param_replace request page=page_obj.previous_page_number 
+%}">Назад</a>
+        {% endif %}
+        <span class="current">
+            Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
+        </span>
+        {% if page_obj.has_next %}
+            <a href="?{% param_replace request page=page_obj.next_page_number %}">Далее</a>
+            <a href="?{% param_replace request page=page_obj.paginator.num_pages 
+%}">Последняя &raquo;</a>
+        {% endif %}
+        
+    </span>
+</div>
 </main>
-<!-- type="module" включает режим современных импортов -->
+
 <script type="module">
-    import { loadModel } from "{% static 'gallery/js/viewer.js' %}";
-    // Находим все блоки, готовые к 3D
-    const containers = document.querySelectorAll('.js-load-3d');
-    containers.forEach(container => {
-        // Вешаем слушатель клика на каждую карточку
-        container.addEventListener('click', function() {
-            
-            // Проверка: Если внутри уже есть canvas, значит модель уже загружена
-            if (this.querySelector('canvas')) return;
-            // 1. Убираем кнопку Play (очищаем контент)
-            // Но оставляем фон, пока не появится Canvas, чтобы не мигало белым
-            this.innerHTML = ''; 
-            this.style.backgroundImage = 'none';
-            // 2. Добавляем спиннер (визуально для пользователя)
-         
-            // 3. Запускаем загрузку 3D
-            const id = this.id;
-            const url = this.dataset.url;
-            
-            if (url) {
-                console.log("Загружаю 3D по требованию:", url);
-                loadModel(id, url);
-                
-                // Убираем фоновую картинку, когда 3D загрузится? 
-                // loadModel сам очистит innerHTML и перекроет фон канвасом.
-            }
-        });
+  import { loadModel } from "{% static 'gallery/js/viewer.js' %}";
+
+  const containers = document.querySelectorAll('.js-load-3d');
+
+  containers.forEach(container => {
+    container.addEventListener('click', function() {
+      if (this.querySelector('canvas')) return;
+
+      this.innerHTML = '';
+      this.style.backgroundImage = 'none';
+
+      const id = this.id;
+      const url = this.dataset.url;
+
+      if (url) loadModel(id, url);
     });
+  });
 </script>
 
 </body>
+{% if messages %}
+    <div class="messages-container">
+        {% for message in messages %}
+            <!-- message.tags добавит класс 'success', 'error' или 'warning' -->
+            <div class="alert {{ message.tags }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+
 </html>

@@ -6,12 +6,50 @@ from django.http import JsonResponse
 from django.core.files.base import ContentFile 
 from django.views.decorators.http import require_POST
 from django.contrib.admin.views.decorators import staff_member_required
+from django.utils import timezone
+from datetime import timedelta
+from django.core.paginator import Paginator
+from django.contrib import messages 
+
 def home(request):
-    # ORM Запрос: "Дай мне все объекты Asset из базы"
-    assets = Asset.objects.all().order_by('-created_at')
+    # 1. Получаем параметры из URL (GET-запроса)
+    # Если параметра нет, вернет None (или пустую строку, если мы так настроили)
+    search_query = request.GET.get('q', '')
+    ordering = request.GET.get('ordering', 'new') # По умолчанию 'new'
+    # 2. Базовый запрос: Берем ВСЕ
+    assets = Asset.objects.all()
+    # 3. Применяем поиск (если пользователь что-то ввел)
+    if search_query:
+  
+        assets = assets.filter(title__icontains=search_query)
+    # 4. Применяем сортировку
+    if ordering == 'old':
+        assets = assets.order_by('created_at') # От старых к новым
+    elif ordering == 'name':
+        assets = assets.order_by('title')      # По алфавиту
+    else:
+        # По умолчанию (new) - свежие сверху
+        assets = assets.order_by('-created_at')
+    days = request.GET.get('days')
+
+    if days:
+        try:
+            days = int(days)
+            assets = assets.filter(
+                created_at__gte=timezone.now() - timedelta(days=days)
+            )
+        except ValueError:
+            pass
+
+    paginator = Paginator(assets, 8) 
+# Получаем номер страницы из URL (например, ?page=2)
+    page_number = request.GET.get('page')
+    # Получаем конкретный кусочек данных (объект Page)
+    page_obj = paginator.get_page(page_number)
     context_data = {
-        'page_title': 'Главная Галерея',
-        'assets': assets, # Передаем реальный QuerySet (список)
+    'page_title': 'Главная Галерея',
+    # 'assets': assets,  <-- ЭТУ СТРОКУ УДАЛИТЬ!
+    'page_obj': page_obj, # <-- ВМЕСТО НЕЁ ЭТУ
     }
     return render(request, 'gallery/index.html', context_data)
 
@@ -44,7 +82,9 @@ def upload(request):
                 new_asset.image.save(file_name, ContentFile(data), save=False)
             # 3. Финальное сохранение в БД
             new_asset.save()
+            messages.success(request, f'Модель "{new_asset.title}" успешно загружена!')
             
+        
             return redirect('home')
     else:
         form = AssetForm()
