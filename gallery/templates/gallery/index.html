@@ -1,9 +1,14 @@
 {% load static %}
+{% load gallery_extras %}
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>3D Storage</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>3Di Storage</title>
+
+  <link rel="icon" type="image/png" href="{% static 'gallery/img/favicon.png' %}">
 
   <script type="importmap">
   {
@@ -17,184 +22,192 @@
   <link rel="stylesheet" href="{% static 'gallery/style.css' %}">
 </head>
 
-<body>
+<body class="ui">
 
-<header class="page-header">
-  <div class="header-left">
-    <h1 class="page-title">{{ page_title }}</h1>
-  
-  </div>
-
-  <a href="{% url 'upload' %}" class="btn btn-success">
-    + Загрузить модель
-  </a>
-</header>
-
-<section class="toolbar">
-  <form action="{% url 'home' %}" method="get" class="toolbar-form">
-   <!-- Поиск -->
-    <div class="toolbar-group grow">
-      <input
-        type="text"
-        name="q"
-        class="search-input"
-        placeholder="Найти 3D модель..."
-        value="{{ request.GET.q|default:'' }}"
-      >
+  {% if messages %}
+    <div class="messages-container">
+      {% for message in messages %}
+        <div class="alert {{ message.tags }}">{{ message }}</div>
+      {% endfor %}
     </div>
+  {% endif %}
 
-    <!-- Сортировка -->
-    <div class="toolbar-group">
-      <select name="ordering" class="sort-select" onchange="this.form.submit()">
-        <option value="new" {% if request.GET.ordering == 'new' %}selected{% endif %}>Сначала новые</option>
-        <option value="old" {% if request.GET.ordering == 'old' %}selected{% endif %}>Сначала старые</option>
-        <option value="name" {% if request.GET.ordering == 'name' %}selected{% endif %}>По имени (А-Я)</option>
-      </select>
-    </div>
+  <div class="page">
 
-    <!-- Чтобы при поиске/сортировке не терялся days -->
-    <input type="hidden" name="days" value="{{ request.GET.days|default:'' }}">
+    <!-- HERO -->
+    <header class="hero">
+      <div class="hero-inner">
+        <div class="hero-spacer"></div>
 
-    <!-- Кнопка поиска -->
-    <div class="toolbar-group">
-      <button type="submit" class="btn btn-primary">Найти</button>
-    </div>
+        <div class="hero-logo">
+          <img src="{% static 'gallery/img/logo.png' %}" alt="Галерея 3D ассетов">
+        </div>
 
-    <!-- Быстрые фильтры -->
-    <div class="toolbar-group toolbar-chips">
-      <a
-        href="?q={{ request.GET.q|default:'' }}&ordering={{ request.GET.ordering|default:'' }}"
-        class="chip {% if not request.GET.days %}chip-active{% endif %}"
-        title="Показать всё"
-      >Все</a>
-
-      <a
-        href="?q={{ request.GET.q|default:'' }}&ordering={{ request.GET.ordering|default:'' }}&days=1"
-        class="chip {% if request.GET.days == '1' %}chip-active{% endif %}"
-      >Сегодня</a>
-
-      <a
-        href="?q={{ request.GET.q|default:'' }}&ordering={{ request.GET.ordering|default:'' }}&days=7"
-        class="chip {% if request.GET.days == '7' %}chip-active{% endif %}"
-      >7 дней</a>
-
-      <a
-        href="?q={{ request.GET.q|default:'' }}&ordering={{ request.GET.ordering|default:'' }}&days=30"
-        class="chip {% if request.GET.days == '30' %}chip-active{% endif %}"
-      >30 дней</a>
-    </div>
-
-    <!-- Сброс -->
-    <div class="toolbar-group">
-      {% if request.GET.q or request.GET.ordering or request.GET.days %}
-        <a href="{% url 'home' %}" class="btn btn-ghost">Сбросить</a>
-      {% endif %}
-    </div>
-
-  </form>
-</section>
-
-<main class="page-main">
-  <div class="gallery-grid">
-
-    {% for asset in page_obj %}
-    <div class="asset-card">
-
-      <div class="card-preview js-load-3d"
-           id="model-container-{{ asset.id }}"
-           {% if asset.file %}data-url="{{ asset.file.url }}"{% endif %}
-           {% if asset.image %}style="background-image:url('{{ asset.image.url }}');"{% endif %}>
-
-        {% if asset.image %}
-          <div class="play-btn">▶️</div>
-        {% else %}
-          <span class="preview-fallback">🎲</span>
-        {% endif %}
+        <div class="hero-actions">
+          <a href="{% url 'upload' %}" class="btn btn-upload">+ Загрузить модель</a>
+        </div>
       </div>
+    </header>
 
-      <div class="card-info">
-        <h3 class="card-title">{{ asset.title }}</h3>
+    <!-- CONTROL BAR -->
+    <section class="control-bar">
+      <form action="{% url 'home' %}" method="get" class="control-form">
 
-        <div class="card-meta">
-          <span>📅 {{ asset.created_at|date:"d M Y" }}</span>
-          {% if asset.file %}
-            <span class="meta-right">💾 {{ asset.file.size|filesizeformat }}</span>
+        <!-- Поиск -->
+        <div class="search-block">
+          <input
+            type="text"
+            name="q"
+            class="search-input"
+            placeholder="Найти 3D модель..."
+            value="{{ request.GET.q|default:'' }}"
+    
+          >
+          <button type="submit" class="btn btn-find">Найти</button>
+        </div>
+
+        <!-- Сортировка -->
+        <div class="sort-block">
+          <select name="ordering" class="sort-select" onchange="this.form.submit()">
+            <option value="new" {% if request.GET.ordering == 'new' or not request.GET.ordering %}selected{% endif %}>Сначала новые</option>
+            <option value="old" {% if request.GET.ordering == 'old' %}selected{% endif %}>Сначала старые</option>
+            <option value="name" {% if request.GET.ordering == 'name' %}selected{% endif %}>По имени (А-Я)</option>
+          </select>
+        </div>
+
+        <!-- чтобы при submit не терялся days -->
+        <input type="hidden" name="days" value="{{ request.GET.days|default:'' }}">
+
+        <!-- Чипсы -->
+        <div class="chips-block">
+          <a href="?{% param_replace request days='' page=1 %}"
+             class="chip {% if not request.GET.days %}chip-active{% endif %}">Все</a>
+
+          <a href="?{% param_replace request days=1 page=1 %}"
+             class="chip {% if request.GET.days == '1' %}chip-active{% endif %}">Сегодня</a>
+
+          <a href="?{% param_replace request days=7 page=1 %}"
+             class="chip {% if request.GET.days == '7' %}chip-active{% endif %}">7 дней</a>
+
+          <a href="?{% param_replace request days=30 page=1 %}"
+             class="chip {% if request.GET.days == '30' %}chip-active{% endif %}">30 дней</a>
+        </div>
+
+        <!-- Сброс -->
+        <div class="reset-block">
+          {% if request.GET.q or request.GET.ordering or request.GET.days %}
+            <a href="{% url 'home' %}" class="btn btn-reset">Сбросить</a>
           {% endif %}
         </div>
 
-        {% if asset.file %}
-          <a href="{{ asset.file.url }}" class="btn btn-secondary" download>Скачать .glb</a>
-        {% else %}
-          <span class="file-missing">Файл отсутствует</span>
-        {% endif %}
+      </form>
+    </section>
+
+    <!-- CONTENT -->
+    <main class="content">
+      <div class="gallery-grid">
+
+        {% for asset in page_obj %}
+          <div class="asset-card">
+
+            <div class="asset-windowbar">
+              <span class="dot dot-red"></span>
+              <span class="dot dot-yellow"></span>
+              <span class="dot dot-green"></span>
+              <span class="windowbar-line"></span>
+            </div>
+
+            <div class="card-preview js-load-3d"
+                 id="model-container-{{ asset.id }}"
+                 {% if asset.file %}data-url="{{ asset.file.url }}"{% endif %}
+                 {% if asset.image %}style="background-image:url('{{ asset.image.url }}');"{% endif %}>
+
+              {% if asset.image %}
+                <div class="play-btn">▶</div>
+              {% else %}
+                <span class="preview-fallback">🎲</span>
+              {% endif %}
+            </div>
+
+            <div class="card-info">
+              <h3 class="card-title" title="{{ asset.title }}">{{ asset.title }}</h3>
+
+              <div class="card-meta">
+                <span class="meta-item">
+                  <img class="icon" src="{% static 'gallery/img/icons/calendar.png' %}" alt="">
+                  {{ asset.created_at|date:"d M Y" }}
+                </span>
+
+                {% if asset.file %}
+                  <span class="meta-item meta-right">
+                    <img class="icon" src="{% static 'gallery/img/icons/size.png' %}" alt="">
+                    {{ asset.file.size|filesizeformat }}
+                  </span>
+                {% endif %}
+              </div>
+
+              {% if asset.file %}
+                <a href="{{ asset.file.url }}" class="btn btn-download" download>
+                  <img class="icon icon-invert" src="{% static 'gallery/img/icons/download.png' %}" alt="">
+                  Скачать .glb
+                </a>
+              {% else %}
+                <span class="file-missing">Файл отсутствует</span>
+              {% endif %}
+            </div>
+
+          </div>
+
+        {% empty %}
+          <div class="empty-state">
+            <div class="empty-title">Пока пусто</div>
+            <div class="empty-text">Загрузи первую модель - и она появится здесь.</div>
+          </div>
+        {% endfor %}
+
       </div>
 
-    </div>
-    {% empty %}
-      <div class="empty-state">
-        <div class="empty-title">Пока пусто</div>
-        <div class="empty-text">Загрузи первую модель - и она появится здесь.</div>
+      <!-- PAGINATION -->
+      <div class="pagination">
+        <span class="step-links">
+          {% if page_obj.has_previous %}
+            <a class="pbtn" href="?{% param_replace request page=1 %}">Первая</a>
+            <a class="pbtn" href="?{% param_replace request page=page_obj.previous_page_number %}">Назад</a>
+          {% endif %}
+
+          <span class="current">
+            Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
+          </span>
+
+          {% if page_obj.has_next %}
+            <a class="pbtn" href="?{% param_replace request page=page_obj.next_page_number %}">Далее</a>
+            <a class="pbtn" href="?{% param_replace request page=page_obj.paginator.num_pages %}">Последняя</a>
+          {% endif %}
+        </span>
       </div>
-    {% endfor %}
+    </main>
 
   </div>
-{% load gallery_extras %}
-<div class="gallery-grid">
-    <!-- ... -->
-</div>
-<!-- 3. Блок Пагинации -->
-<div class="pagination">
-    <span class="step-links">
-        
-        {% if page_obj.has_previous %}
-            <!-- Используем наш тег: берем текущий request и меняем page на 1 -->
-            <a href="?{% param_replace request page=1 %}">&laquo; Первая</a>
-            <a href="?{% param_replace request page=page_obj.previous_page_number 
-%}">Назад</a>
-        {% endif %}
-        <span class="current">
-            Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
-        </span>
-        {% if page_obj.has_next %}
-            <a href="?{% param_replace request page=page_obj.next_page_number %}">Далее</a>
-            <a href="?{% param_replace request page=page_obj.paginator.num_pages 
-%}">Последняя &raquo;</a>
-        {% endif %}
-        
-    </span>
-</div>
-</main>
 
-<script type="module">
-  import { loadModel } from "{% static 'gallery/js/viewer.js' %}";
+  <script type="module">
+    import { loadModel } from "{% static 'gallery/js/viewer.js' %}";
 
-  const containers = document.querySelectorAll('.js-load-3d');
+    const containers = document.querySelectorAll('.js-load-3d');
 
-  containers.forEach(container => {
-    container.addEventListener('click', function() {
-      if (this.querySelector('canvas')) return;
+    containers.forEach(container => {
+      container.addEventListener('click', function() {
+        if (this.querySelector('canvas')) return;
 
-      this.innerHTML = '';
-      this.style.backgroundImage = 'none';
+        this.innerHTML = '';
+        this.style.backgroundImage = 'none';
 
-      const id = this.id;
-      const url = this.dataset.url;
+        const id = this.id;
+        const url = this.dataset.url;
 
-      if (url) loadModel(id, url);
+        if (url) loadModel(id, url);
+      });
     });
-  });
-</script>
+  </script>
 
 </body>
-{% if messages %}
-    <div class="messages-container">
-        {% for message in messages %}
-            <!-- message.tags добавит класс 'success', 'error' или 'warning' -->
-            <div class="alert {{ message.tags }}">
-                {{ message }}
-            </div>
-        {% endfor %}
-    </div>
-{% endif %}
-
 </html>

@@ -12,46 +12,44 @@ from django.core.paginator import Paginator
 from django.contrib import messages 
 
 def home(request):
-    # 1. Получаем параметры из URL (GET-запроса)
-    # Если параметра нет, вернет None (или пустую строку, если мы так настроили)
-    search_query = request.GET.get('q', '')
-    ordering = request.GET.get('ordering', 'new') # По умолчанию 'new'
-    # 2. Базовый запрос: Берем ВСЕ
-    assets = Asset.objects.all()
-    # 3. Применяем поиск (если пользователь что-то ввел)
-    if search_query:
-  
-        assets = assets.filter(title__icontains=search_query)
-    # 4. Применяем сортировку
-    if ordering == 'old':
-        assets = assets.order_by('created_at') # От старых к новым
-    elif ordering == 'name':
-        assets = assets.order_by('title')      # По алфавиту
-    else:
-        # По умолчанию (new) - свежие сверху
-        assets = assets.order_by('-created_at')
+    search_query = (request.GET.get('q') or '').strip()
+    ordering = request.GET.get('ordering', 'new')
     days = request.GET.get('days')
 
+    assets_qs = Asset.objects.all()
+
+    # 1) Фильтр по дате (ORM)
     if days:
         try:
-            days = int(days)
-            assets = assets.filter(
-                created_at__gte=timezone.now() - timedelta(days=days)
-            )
+            days_int = int(days)
+            assets_qs = assets_qs.filter(created_at__gte=timezone.now() - timedelta(days=days_int))
         except ValueError:
             pass
 
-    paginator = Paginator(assets, 8) 
-# Получаем номер страницы из URL (например, ?page=2)
+    # 2) Сортировка (ORM)
+    if ordering == 'old':
+        assets_qs = assets_qs.order_by('created_at')
+    elif ordering == 'name':
+        assets_qs = assets_qs.order_by('title')
+    else:
+        assets_qs = assets_qs.order_by('-created_at')
+
+    # 3) Поиск (устойчивый на кириллице)
+    if search_query:
+        q = search_query.casefold()
+        assets_list = [a for a in assets_qs if q in (a.title or '').casefold()]
+    else:
+        assets_list = list(assets_qs)
+
+    # 4) Пагинация
+    paginator = Paginator(assets_list, 9)
     page_number = request.GET.get('page')
-    # Получаем конкретный кусочек данных (объект Page)
     page_obj = paginator.get_page(page_number)
-    context_data = {
-    'page_title': 'Главная Галерея',
-    # 'assets': assets,  <-- ЭТУ СТРОКУ УДАЛИТЬ!
-    'page_obj': page_obj, # <-- ВМЕСТО НЕЁ ЭТУ
-    }
-    return render(request, 'gallery/index.html', context_data)
+
+    return render(request, 'gallery/index.html', {
+        'page_title': 'Главная Галерея',
+        'page_obj': page_obj,
+    })
 
 def about(request):
     return render(request, 'gallery/about.html')

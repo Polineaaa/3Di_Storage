@@ -1,59 +1,129 @@
+{% load static %}
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<title>Загрузка модели</title>
-<!-- Простой CSS для наглядности (пока без внешних файлов) -->
-<style>
-body { font-family: sans-serif; max-width: 600px; margin: 2rem auto; padding: 0
-1rem; }
-.form-group { margin-bottom: 1rem; }
-button { padding: 10px 20px; cursor: pointer; }
-</style>
-</head>
-<body>
-<h1>Загрузить новую 3D модель</h1>
-<!--
-1. method="post": Чтобы отправить данные.
-2. enctype="multipart/form-data": ОБЯЗАТЕЛЬНО для файлов!
--->
-<form method="post" enctype="multipart/form-data">
-<!-- Защита от хакеров -->
-{% csrf_token %}
-<!-- Django сам нарисует label и input для всех полей -->
-<div class="form-group">
-{{ form.as_p }}
-</div>
-<!-- БЛОК ПРЕВЬЮ (Новый) -->
-<div style="margin-bottom: 20px;">
-<p>Авто-генерация превью:</p>
-<!-- Сюда JS вставит Canvas с 3D моделью -->
-<div id="preview-container" style="width: 300px; height: 200px; background: #eee; 
-border: 1px solid #ccc;">
-<span style="display: block; padding: 80px 0; text-align: center; color: 
-#999;">Выберите файл...</span>
-</div>
-<!-- СКРЫТОЕ ПОЛЕ (Сюда JS запишет длинную строку base64) -->
-<input type="hidden" name="image_data" id="id_image_data">
-</div>
-<!-- ... -->
-<!-- Кнопка отправки (блокируем её, пока не сгенерируется картинка) -->
-<button type="submit" id="submit-btn" disabled>Загрузить в базу</button>
-<!-- Подключаем скрипт-генератор (создадим его на следующем шаге) -->
-<!-- Важно: type="module", чтобы работали импорты Three.js -->
-{% load static %}
-<script type="importmap">
-{
-"imports": {
-"three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-"three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-}
-}
-</script>
-<script type="module" src="{% static 'gallery/js/autothumb.js' %}"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Загрузка модели</title>
 
-</form>
-<br>
-<a href="{% url 'home' %}">← Назад в галерею</a>
+  <link rel="icon" type="image/png" href="{% static 'gallery/img/favicon.png' %}">
+  <link rel="stylesheet" href="{% static 'gallery/style.css' %}">
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+
+<body class="ui">
+
+  {% if messages %}
+    <div class="messages-container">
+      {% for message in messages %}
+        <div class="alert {{ message.tags }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="page">
+
+    <!-- HERO (упрощённый) -->
+    <header class="hero hero-simple">
+      <div class="hero-inner">
+        <div class="hero-left">
+          <a class="btn btn-back" href="{% url 'home' %}">
+            ← Назад
+          </a>
+        </div>
+
+        <div class="hero-logo">
+          <img src="{% static 'gallery/img/logo.png' %}" alt="Галерея 3D ассетов">
+        </div>
+
+        <div class="hero-actions">
+          <span class="hero-title-badge">Загрузка модели</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="content">
+      <section class="upload-shell">
+
+        <div class="upload-card">
+          <div class="asset-windowbar">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-yellow"></span>
+            <span class="dot dot-green"></span>
+            <span class="windowbar-line"></span>
+          </div>
+
+          <div class="upload-body">
+
+            <h1 class="upload-title">Загрузить новую 3D модель</h1>
+            <p class="upload-subtitle">
+              Выбери .glb, мы сделаем превью автоматически и сохраним модель.
+            </p>
+
+            <form method="post" enctype="multipart/form-data" class="upload-form">
+              {% csrf_token %}
+
+              <!-- Поля Django формы -->
+              <div class="form-grid">
+                {{ form.as_p }}
+              </div>
+
+              <!-- Превью -->
+              <div class="upload-preview">
+                <div class="upload-preview-head">
+                  <span class="upload-preview-label">Авто-генерация превью</span>
+                 
+                </div>
+
+                <div id="preview-container" class="preview-box">
+                  <span class="preview-placeholder">Выберите файл...</span>
+                </div>
+
+                <input type="hidden" name="image_data" id="id_image_data">
+              </div>
+
+              <!-- Действия -->
+              <div class="upload-actions">
+                <button type="submit" id="submit-btn" class="btn btn-upload-submit" disabled>
+                  Загрузить в базу
+                </button>
+
+                <a href="{% url 'home' %}" class="btn btn-ghost-link">
+                  Отмена
+                </a>
+              </div>
+
+              <!-- Скрипт автопревью -->
+              <script type="module" src="{% static 'gallery/js/autothumb.js' %}"></script>
+            </form>
+
+          </div>
+        </div>
+
+        <!-- маленькая подсказка справа (необязательно, но выглядит “как продукт”) -->
+        <aside class="upload-side">
+          <div class="upload-tip">
+            <div class="upload-tip-title">Подсказка</div>
+            <div class="upload-tip-text">
+              Если превью долго не появляется - проверь, что файл реально .glb и не битый.
+              После генерации кнопка станет активной.
+            </div>
+          </div>
+        </aside>
+
+      </section>
+    </main>
+
+  </div>
+
 </body>
 </html>
