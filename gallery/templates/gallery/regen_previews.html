@@ -66,126 +66,130 @@
     const csrftoken = getCookie('csrftoken');
   </script>
 
-  <script type="module">
-    import * as THREE from 'three';
-    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+ <script type="module">
+  import * as THREE from 'three';
+  import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-    async function postPreview(assetId, dataURL) {
-      const formData = new FormData();
-      formData.append('image_data', dataURL);
+  async function postPreview(assetId, dataURL) {
+    const formData = new FormData();
+    formData.append('image_data', dataURL);
 
-      const resp = await fetch(`/save-preview/${assetId}/`, {
-        method: 'POST',
-        headers: { 'X-CSRFToken': csrftoken },
-        body: formData
-      });
-
-      if (!resp.ok) {
-        const txt = await resp.text();
-        throw new Error(txt || 'Server error');
-      }
-      return resp.json();
-    }
-
-    function setStatus(id, text, cls) {
-      const el = document.getElementById(`status-${id}`);
-      if (!el) return;
-      el.textContent = text;
-      el.classList.remove('ok', 'bad');
-      if (cls) el.classList.add(cls);
-    }
-
-    function generateThumbToDataURL(previewContainer, modelUrl) {
-      return new Promise((resolve, reject) => {
-        const width = 300, height = 200;
-
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0xffffff);
-
-        const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-
-        const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
-        renderer.setSize(width, height);
-        renderer.outputColorSpace = THREE.SRGBColorSpace;
-
-        previewContainer.innerHTML = '';
-        previewContainer.appendChild(renderer.domElement);
-
-        const ambient = new THREE.AmbientLight(0xffffff, 1.2);
-        scene.add(ambient);
-        const dir = new THREE.DirectionalLight(0xffffff, 1.2);
-        dir.position.set(5, 10, 7);
-        scene.add(dir);
-
-        const loader = new GLTFLoader();
-        loader.load(
-          modelUrl,
-          (gltf) => {
-            const model = gltf.scene;
-            scene.add(model);
-
-            // центровка
-            model.updateWorldMatrix(true, true);
-            const box = new THREE.Box3().setFromObject(model);
-            const center = box.getCenter(new THREE.Vector3());
-            const size = box.getSize(new THREE.Vector3());
-            const maxDim = Math.max(size.x, size.y, size.z);
-
-            model.position.sub(center);
-
-            const fov = camera.fov * (Math.PI / 180);
-            let cameraZ = Math.abs((maxDim / 2) / Math.tan(fov / 2)) * 1.5;
-            cameraZ = Math.max(cameraZ, 1);
-
-            camera.near = Math.max(0.01, maxDim / 100);
-            camera.far = Math.max(1000, maxDim * 100);
-            camera.updateProjectionMatrix();
-
-            camera.position.set(cameraZ * 0.5, cameraZ * 0.5, cameraZ);
-            camera.lookAt(0, 0, 0);
-
-            renderer.render(scene, camera);
-
-            // jpg base64
-            const dataURL = renderer.domElement.toDataURL('image/jpeg', 0.8);
-
-            // освобождаем память (важно, если много моделей)
-            renderer.dispose();
-            resolve(dataURL);
-          },
-          undefined,
-          (err) => {
-            reject(err);
-          }
-        );
-      });
-    }
-
-    document.querySelectorAll('.btn-generate').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const id = btn.dataset.id;
-        const row = btn.closest('.row');
-        const modelUrl = row.dataset.modelUrl;
-        const preview = document.getElementById(`preview-${id}`);
-
-        try {
-          btn.disabled = true;
-          setStatus(id, 'Генерирую в браузере...', null);
-
-          const dataURL = await generateThumbToDataURL(preview, modelUrl);
-
-          setStatus(id, 'Отправляю на сервер...', null);
-          await postPreview(id, dataURL);
-
-          setStatus(id, 'Готово ✅ Можно обновить галерею', 'ok');
-        } catch (e) {
-          console.error(e);
-          setStatus(id, 'Ошибка ❌ (см. Console)', 'bad');
-          btn.disabled = false;
-        }
-      });
+    const resp = await fetch(`/save-preview/${assetId}/`, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrftoken },
+      body: formData
     });
-  </script>
+
+    if (!resp.ok) {
+      const txt = await resp.text();
+      throw new Error(txt || 'Server error');
+    }
+    return resp.json();
+  }
+
+  function setStatus(id, text, cls) {
+    const el = document.getElementById(`status-${id}`);
+    if (!el) return;
+    el.textContent = text;
+    el.classList.remove('ok', 'bad');
+    if (cls) el.classList.add(cls);
+  }
+
+  function generateThumbToDataURL(previewContainer, modelUrl) {
+    return new Promise((resolve, reject) => {
+      const width = 300;
+      const height = 220;
+
+      const scene = new THREE.Scene();
+      scene.background = null;
+
+      const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+
+      const renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: true,
+        preserveDrawingBuffer: true
+      });
+
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.setClearColor(0x000000, 0); // прозрачный фон
+
+      previewContainer.innerHTML = '';
+      previewContainer.appendChild(renderer.domElement);
+
+      scene.add(new THREE.AmbientLight(0xffffff, 1.4));
+      const dir = new THREE.DirectionalLight(0xffffff, 1.2);
+      dir.position.set(5, 10, 7);
+      scene.add(dir);
+
+      const loader = new GLTFLoader();
+      loader.load(
+        modelUrl,
+        (gltf) => {
+          const model = gltf.scene;
+
+          // Центрируем
+          const box = new THREE.Box3().setFromObject(model);
+          const center = box.getCenter(new THREE.Vector3());
+          const size = box.getSize(new THREE.Vector3());
+          const maxDim = Math.max(size.x, size.y, size.z);
+
+          model.position.sub(center);
+          scene.add(model);
+
+          // Камера
+          const fov = (camera.fov * Math.PI) / 180;
+          const cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.6;
+
+          camera.position.set(cameraZ * 0.55, cameraZ * 0.45, cameraZ);
+          camera.lookAt(0, 0, 0);
+
+          renderer.render(scene, camera);
+
+          // ВАЖНО: PNG (с альфой)
+          const dataURL = renderer.domElement.toDataURL('image/png');
+
+          // освобождаем память
+          renderer.dispose();
+          resolve(dataURL);
+        },
+        undefined,
+        (err) => {
+          renderer.dispose();
+          reject(err);
+        }
+      );
+    });
+  }
+
+  document.querySelectorAll('.btn-generate').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      const row = btn.closest('.row');
+      const modelUrl = row.dataset.modelUrl;
+      const preview = document.getElementById(`preview-${id}`);
+
+      try {
+        btn.disabled = true;
+        setStatus(id, 'Генерирую в браузере...', null);
+
+        const dataURL = await generateThumbToDataURL(preview, modelUrl);
+
+        setStatus(id, 'Отправляю на сервер...', null);
+        await postPreview(id, dataURL);
+
+        setStatus(id, 'Готово ✅ Обнови галерею', 'ok');
+      } catch (e) {
+        console.error(e);
+        setStatus(id, 'Ошибка ❌ (см. Console)', 'bad');
+        btn.disabled = false;
+      }
+    });
+  });
+</script>
+
 
 </body>
 </html>
