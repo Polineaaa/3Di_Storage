@@ -7,8 +7,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
 ]
 
-# media - всегда (для локального теста при DEBUG=False)
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
 
 # urls приложения
 urlpatterns += [
@@ -17,4 +16,5 @@ urlpatterns += [
 
 # статика через Django только в DEBUG=True (не обязательно, но можно)
 if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
